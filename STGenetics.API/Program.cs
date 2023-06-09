@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -45,7 +47,17 @@ builder.Services.AddScoped<IAnimalRepository, AnimalRepository>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c=>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "STGenetics API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "STGenetics API", Version = "v1" });
+
+    // Add the JWT bearer token support
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+    c.OperationFilter<SecurityRequirementsOperationFilter>();
 }
 );
 var app = builder.Build();
@@ -54,7 +66,17 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "STGenetics API V1");
+
+        c.OAuthClientId("your_issuer"); // Replace with your issuer
+        c.OAuthAppName("STGenetics API");
+        c.OAuthUsePkce();
+
+        // Optional: Set additional OAuth configuration if needed
+        // c.OAuthAdditionalQueryStringParams(new { your_additional_params });
+    });
 }
 
 app.UseHttpsRedirection();
